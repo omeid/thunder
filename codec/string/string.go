@@ -19,27 +19,30 @@ type marshaler struct {
 func (m marshaler) MarshalBinary() ([]byte, error) {
 
 	var err error
-	bytes, ok := m.value.([]byte)
-	if !ok {
+
+	v := reflect.Indirect(reflect.ValueOf(m.value))
+	if v.Kind() != reflect.String {
 		err = fmt.Errorf("Strings Codec: Expected type string but got %s", reflect.TypeOf(m.value))
 	}
 
-	return bytes, err
+	vs := v.Interface().(string)
+	if vs == "" {
+		err = fmt.Errorf("Empty Key.")
+	}
+	return []byte(vs), err
 }
 
 type unmarshaler struct {
-	data  []byte
 	value interface{}
 }
 
 func (m unmarshaler) UnmarshalBinary(data []byte) error {
 
 	rv := reflect.ValueOf(m.value)
-	if rv.IsNil() || rv.Type() != reflect.TypeOf((*string)(nil)) {
+	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.String {
 		return fmt.Errorf("Strings Codec: Expects Non-nil String Pointer.")
 	}
-
-	m.value = string(m.data)
+	rv.Elem().SetString(string(data))
 	return nil
 }
 
@@ -50,5 +53,5 @@ func (c stringCodec) Marshaler(v interface{}) encoding.BinaryMarshaler {
 }
 
 func (c stringCodec) Unmarshaler(v interface{}) encoding.BinaryUnmarshaler {
-	return unmarshaler{}
+	return unmarshaler{v}
 }

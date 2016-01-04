@@ -10,23 +10,64 @@ type Tx struct {
 
 	kc codec.Codec
 	vc codec.Codec
+
+	err error
 }
 
-func (tx *Tx) Bucket(name interface{}) (*Bucket, error) {
+func (tx *Tx) Err() error {
+	return tx.err
+}
+
+func (tx *Tx) Commit() error {
+	return tx.tx.Commit()
+}
+
+func (tx *Tx) CreateBucketIfNotExists(name interface{}) *Bucket {
+	if tx.err != nil {
+		return &Bucket{nil, tx.kc, tx.vc, tx.err}
+	}
 
 	n, err := tx.kc.Marshaler(name).MarshalBinary()
 	if err != nil {
-		return nil, err
+		return &Bucket{nil, tx.kc, tx.vc, err}
 	}
+
+	bucket, err := tx.tx.CreateBucketIfNotExists(n)
+	return &Bucket{
+		bucket: bucket,
+		kc:     tx.kc,
+		vc:     tx.vc,
+		err:    err,
+	}
+
+}
+
+func (tx *Tx) Bucket(name interface{}) *Bucket {
+
+	if tx.err != nil {
+		return &Bucket{nil, tx.kc, tx.vc, tx.err}
+	}
+
+	n, err := tx.kc.Marshaler(name).MarshalBinary()
 
 	bucket := tx.tx.Bucket(n)
 	if bucket == nil {
-		return nil, bolt.ErrBucketNotFound
+		err = bolt.ErrBucketNotFound
 	}
 
-	return &Bucket{bucket, tx.kc, tx.vc}, nil
+	return &Bucket{
+		bucket: bucket,
+		kc:     tx.kc,
+		vc:     tx.vc,
+		err:    err,
+	}
 }
 
 func (tx *Tx) Cursor() *Cursor {
-	return &Cursor{tx.tx.Cursor(), tx.kc, tx.vc}
+	return &Cursor{
+		cursor: tx.tx.Cursor(),
+		kc:     tx.kc,
+		vc:     tx.vc,
+		err:    tx.err,
+	}
 }

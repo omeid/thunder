@@ -22,7 +22,7 @@ type Options struct {
 	ValueCodec codec.Codec
 }
 
-func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
+func Open(path string, mode os.FileMode, options Options) (*DB, error) {
 	db, err := bolt.Open(path, mode, &bolt.Options{
 		Timeout:    options.Timeout,
 		NoGrowSync: options.NoGrowSync,

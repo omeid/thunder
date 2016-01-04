@@ -20,12 +20,11 @@ func (m marshaler) MarshalBinary() ([]byte, error) {
 }
 
 type unmarshaler struct {
-	data  []byte
 	value interface{}
 }
 
 func (m unmarshaler) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(m.data, m.value)
+	return json.Unmarshal(data, m.value)
 }
 
 type jsonCodec struct{}
@@ -35,5 +34,5 @@ func (c jsonCodec) Marshaler(v interface{}) encoding.BinaryMarshaler {
 }
 
 func (c jsonCodec) Unmarshaler(v interface{}) encoding.BinaryUnmarshaler {
-	return unmarshaler{}
+	return unmarshaler{v}
 }

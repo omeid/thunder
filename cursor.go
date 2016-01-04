@@ -23,33 +23,54 @@ type Cursor struct {
 
 	kc codec.Codec
 	vc codec.Codec
+
+	err error //for bubbling up errors.
+}
+
+func (cur *Cursor) Err() error {
+	return cur.err
 }
 
 func (cur *Cursor) Bucket() *Bucket {
-	return &Bucket{cur.cursor.Bucket(), cur.kc, cur.vc}
+	return &Bucket{cur.cursor.Bucket(), cur.kc, cur.vc, cur.err}
 }
 
 func (cur *Cursor) First(key interface{}, value interface{}) error {
+	if cur.err != nil {
+		return cur.err
+	}
 	k, v := cur.cursor.First()
 	return unmarshal(cur.kc, cur.vc, k, v, key, value)
 }
 
 func (cur *Cursor) Last(key interface{}, value interface{}) error {
+	if cur.err != nil {
+		return cur.err
+	}
 	k, v := cur.cursor.Last()
 	return unmarshal(cur.kc, cur.vc, k, v, key, value)
 }
 
 func (cur *Cursor) Next(key interface{}, value interface{}) error {
+	if cur.err != nil {
+		return cur.err
+	}
 	k, v := cur.cursor.Next()
 	return unmarshal(cur.kc, cur.vc, k, v, key, value)
 }
 
 func (cur *Cursor) Prev(key interface{}, value interface{}) error {
+	if cur.err != nil {
+		return cur.err
+	}
 	k, v := cur.cursor.Prev()
 	return unmarshal(cur.kc, cur.vc, k, v, key, value)
 }
 
 func (cur *Cursor) Seek(seek interface{}, key interface{}, value interface{}) error {
+	if cur.err != nil {
+		return cur.err
+	}
 	s, err := cur.kc.Marshaler(seek).MarshalBinary()
 	if err != nil {
 		return err

@@ -1,6 +1,9 @@
 package thunder
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/boltdb/bolt"
 	"github.com/omeid/thunder/codec"
 )
@@ -10,23 +13,100 @@ type Bucket struct {
 
 	kc codec.Codec
 	vc codec.Codec
+
+	err error
 }
 
-func (b *Bucket) Bucket(name interface{}) (*Bucket, error) {
+func (b *Bucket) Err() error {
+	return b.err
+}
+
+func (b *Bucket) Bucket(name interface{}) *Bucket {
+
+	if b.err != nil {
+		return &Bucket{nil, b.kc, b.vc, b.err}
+	}
 
 	n, err := b.kc.Marshaler(name).MarshalBinary()
 	if err != nil {
-		return nil, err
+		return &Bucket{nil, b.kc, b.vc, err}
 	}
 
 	bucket := b.bucket.Bucket(n)
 	if bucket == nil {
-		return nil, bolt.ErrBucketNotFound
+		err = bolt.ErrBucketNotFound
 	}
 
-	return &Bucket{bucket, b.kc, b.vc}, nil
+	return &Bucket{bucket, b.kc, b.vc, err}
+}
+
+func (b *Bucket) Put(key interface{}, value interface{}) error {
+	if b.err != nil {
+		return b.err
+	}
+	k, err := b.kc.Marshaler(key).MarshalBinary()
+	if err != nil {
+		return err
+	}
+	v, err := b.vc.Marshaler(value).MarshalBinary()
+	if err != nil {
+		return err
+	}
+	return b.bucket.Put(k, v)
+}
+
+func (b *Bucket) Get(key interface{}, value interface{}) error {
+	if b.err != nil {
+		return b.err
+	}
+
+	k, err := b.kc.Marshaler(key).MarshalBinary()
+	if err != nil {
+		return err
+	}
+	v := b.bucket.Get(k)
+
+	return b.vc.Unmarshaler(value).UnmarshalBinary(v)
+}
+
+func (b *Bucket) All(kvm interface{}) error {
+
+	mv := reflect.Indirect(reflect.ValueOf(kvm))
+
+	if mv.Kind() != reflect.Map {
+		return fmt.Errorf("Thunder: Bucket.All Expects a Map")
+	}
+
+	if mv.IsNil() {
+		return fmt.Errorf("Thunder: Bucket.All expects a map, nil given.")
+	}
+
+	mvt := mv.Type()
+
+	kt := mvt.Key()
+	vt := mvt.Elem()
+
+	return b.bucket.ForEach(func(k, v []byte) error {
+
+		key, value := reflect.New(kt), reflect.New(vt)
+		err := unmarshal(b.kc, b.vc, k, v, key.Interface(), value.Interface())
+		if err != nil {
+			return err
+		}
+		if kt.Kind() != reflect.Ptr {
+			key = reflect.Indirect(key)
+		}
+		if vt.Kind() != reflect.Ptr {
+			value = reflect.Indirect(value)
+		}
+
+		mv.SetMapIndex(key, value)
+		fmt.Printf("get: k,v: `%s:%s` `%v`:`%v`\n", k, v, key, value)
+		return nil
+	})
+
 }
 
 func (b *Bucket) Cursor() *Cursor {
-	return &Cursor{b.bucket.Cursor(), b.kc, b.vc}
+	return &Cursor{b.bucket.Cursor(), b.kc, b.vc, b.err}
 }
