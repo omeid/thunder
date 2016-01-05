@@ -40,6 +40,10 @@ func (b *Bucket) Bucket(name interface{}) *Bucket {
 	return &Bucket{bucket, b.kc, b.vc, err}
 }
 
+func (b *Bucket) Cursor() *Cursor {
+	return &Cursor{b.bucket.Cursor(), b.kc, b.vc, b.err}
+}
+
 func (b *Bucket) Put(key interface{}, value interface{}) error {
 	if b.err != nil {
 		return b.err
@@ -70,6 +74,10 @@ func (b *Bucket) Get(key interface{}, value interface{}) error {
 }
 
 func (b *Bucket) All(kvm interface{}) error {
+	return b.Where(func(interface{}) bool { return true }, kvm)
+}
+
+func (b *Bucket) Where(match func(interface{}) bool, kvm interface{}) error {
 
 	mv := reflect.Indirect(reflect.ValueOf(kvm))
 
@@ -100,13 +108,9 @@ func (b *Bucket) All(kvm interface{}) error {
 			value = reflect.Indirect(value)
 		}
 
-		mv.SetMapIndex(key, value)
-		fmt.Printf("get: k,v: `%s:%s` `%v`:`%v`\n", k, v, key, value)
+		if match(value.Interface()) {
+			mv.SetMapIndex(key, value)
+		}
 		return nil
 	})
-
-}
-
-func (b *Bucket) Cursor() *Cursor {
-	return &Cursor{b.bucket.Cursor(), b.kc, b.vc, b.err}
 }

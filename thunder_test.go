@@ -1,7 +1,6 @@
 package thunder_test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -64,7 +63,7 @@ func TestBucketPutGet(t *testing.T) {
 
 }
 
-func TestBucketAll(t *testing.T) {
+func TestBucketAllWhere(t *testing.T) {
 
 	db, err := thunder.Open("testdata/tmp_json.bd", 0600, thunder.Options{
 		KeyCodec:   strings.Codec(),
@@ -98,7 +97,6 @@ func TestBucketAll(t *testing.T) {
 	}
 
 	for key, value := range test_items {
-		fmt.Println("insert", key, value)
 		err = tx.Bucket("test_All").Put(key, value)
 		if err != nil {
 			t.Fatal(err)
@@ -119,6 +117,33 @@ func TestBucketAll(t *testing.T) {
 
 	if !reflect.DeepEqual(test_items, items) {
 		t.Fatalf("Misss match %v != %v", test_items, items)
+	}
+
+	test_odd := map[string]BasicStruct{}
+
+	for key, value := range test_items {
+		if value.Type%2 != 0 {
+			test_odd[key] = value
+		}
+	}
+
+	items = map[string]BasicStruct{}
+
+	err = db.Begin(false).Bucket("test_All").Where(func(v interface{}) bool {
+		t, ok := v.(BasicStruct)
+		if !ok {
+			return false
+		}
+
+		return t.Type%2 != 0
+	},
+		&items)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(test_odd, items) {
+		t.Fatalf("Misss match %v != %v", test_odd, items)
 	}
 
 	db.Close()
