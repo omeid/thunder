@@ -14,6 +14,21 @@ type BasicStruct struct {
 	Type    int
 }
 
+var test_items = map[string]BasicStruct{
+	"test":   {"Much complex", 0},
+	"test1":  {"Much complex", 1},
+	"test2":  {"Much complex", 2},
+	"test3":  {"Much complex", 3},
+	"test4":  {"Much complex", 4},
+	"test5":  {"Much complex", 5},
+	"test6":  {"Much complex", 6},
+	"test7":  {"Much complex", 7},
+	"test8":  {"Much complex", 8},
+	"test9":  {"Much complex", 9},
+	"test10": {"Much complex", 10},
+	"test11": {"Much complex", 11},
+}
+
 func TestBucketPutGet(t *testing.T) {
 
 	db, err := thunder.Open("testdata/tmp_json.bd", 0600, thunder.Options{
@@ -74,21 +89,6 @@ func TestBucketAllWhere(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	test_items := map[string]BasicStruct{
-		"test":   {"Much complex", 0},
-		"test1":  {"Much complex", 1},
-		"test2":  {"Much complex", 2},
-		"test3":  {"Much complex", 3},
-		"test4":  {"Much complex", 4},
-		"test5":  {"Much complex", 5},
-		"test6":  {"Much complex", 6},
-		"test7":  {"Much complex", 7},
-		"test8":  {"Much complex", 8},
-		"test9":  {"Much complex", 9},
-		"test10": {"Much complex", 10},
-		"test11": {"Much complex", 11},
-	}
-
 	tx := db.Begin(true)
 
 	tx.CreateBucketIfNotExists("test_All")
@@ -96,11 +96,9 @@ func TestBucketAllWhere(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for key, value := range test_items {
-		err = tx.Bucket("test_All").Put(key, value)
-		if err != nil {
-			t.Fatal(err)
-		}
+	err = tx.Bucket("test_All").Insert(test_items)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	err = tx.Commit()

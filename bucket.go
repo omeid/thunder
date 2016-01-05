@@ -73,20 +73,51 @@ func (b *Bucket) Get(key interface{}, value interface{}) error {
 	return b.vc.Unmarshaler(value).UnmarshalBinary(v)
 }
 
+func (b *Bucket) Insert(kvm interface{}) error {
+
+	if b.err != nil {
+		return b.err
+	}
+	mv := reflect.Indirect(reflect.ValueOf(kvm))
+
+	if mv.Kind() != reflect.Map {
+		return fmt.Errorf("Thunder: Bucket.Insert Expects a Map")
+	}
+
+	if mv.IsNil() {
+		return nil //Nothing to do. There is no data.
+	}
+
+	var err error
+	for _, key := range mv.MapKeys() {
+		value := mv.MapIndex(key)
+		err = b.Put(key.Interface(), value.Interface())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (b *Bucket) All(kvm interface{}) error {
 	return b.Where(func(interface{}) bool { return true }, kvm)
 }
 
 func (b *Bucket) Where(match func(interface{}) bool, kvm interface{}) error {
 
+	if b.err != nil {
+		return b.err
+	}
+
 	mv := reflect.Indirect(reflect.ValueOf(kvm))
 
 	if mv.Kind() != reflect.Map {
-		return fmt.Errorf("Thunder: Bucket.All Expects a Map")
+		return fmt.Errorf("Thunder: Bucket.Where Expects a Map")
 	}
 
 	if mv.IsNil() {
-		return fmt.Errorf("Thunder: Bucket.All expects a map, nil given.")
+		return fmt.Errorf("Thunder: Bucket.Where expects a map, nil given.")
 	}
 
 	mvt := mv.Type()
