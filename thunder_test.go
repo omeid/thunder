@@ -2,6 +2,7 @@ package thunder_test
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/omeid/thunder"
@@ -13,6 +14,12 @@ type BasicStruct struct {
 	Complex string
 	Type    int
 }
+
+type Basics []BasicStruct
+
+func (b Basics) Len() int           { return len(b) }
+func (b Basics) Less(i, j int) bool { return b[i].Type < b[j].Type }
+func (b Basics) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 var test_items = map[string]BasicStruct{
 	"test":   {"Much complex", 0},
@@ -106,15 +113,44 @@ func TestBucketAllWhere(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	//ALL MAP
 	items := map[string]BasicStruct{}
 
-	err = db.Begin(false).Bucket("test_All").All(&items)
+	tx = db.Begin(false)
+
+	err = tx.Bucket("test_All").All(&items)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = tx.Rollback()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !reflect.DeepEqual(test_items, items) {
 		t.Fatalf("Misss match %v != %v", test_items, items)
+	}
+
+	var values_slice Basics
+
+	for _, v := range test_items {
+		values_slice = append(values_slice, v)
+	}
+
+	sort.Sort(values_slice)
+	//ALL Slice
+	items_slice := Basics{}
+
+	tx = db.Begin(false)
+	err = tx.Bucket("test_All").All(&items_slice)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sort.Sort(items_slice)
+	if !reflect.DeepEqual(items_slice, values_slice) {
+		t.Fatalf("Misss match %v != %v", items_slice, values_slice)
 	}
 
 	test_odd := map[string]BasicStruct{}
@@ -142,6 +178,11 @@ func TestBucketAllWhere(t *testing.T) {
 
 	if !reflect.DeepEqual(test_odd, items) {
 		t.Fatalf("Misss match %v != %v", test_odd, items)
+	}
+
+	err = tx.Rollback()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	db.Close()

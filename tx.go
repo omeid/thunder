@@ -22,6 +22,10 @@ func (tx *Tx) Commit() error {
 	return tx.tx.Commit()
 }
 
+func (tx *Tx) Rollback() error {
+	return tx.tx.Rollback()
+}
+
 func (tx *Tx) CreateBucketIfNotExists(name interface{}) *Bucket {
 	if tx.err != nil {
 		return &Bucket{nil, tx.kc, tx.vc, tx.err}
