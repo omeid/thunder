@@ -21,6 +21,9 @@ func (b *Bucket) Err() error {
 	return b.err
 }
 
+func (b *Bucket) NextSequence() (uint64, error) {
+	return b.bucket.NextSequence()
+}
 func (b *Bucket) Bucket(name interface{}) *Bucket {
 
 	if b.err != nil {
