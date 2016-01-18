@@ -47,6 +47,26 @@ func (b *Bucket) Cursor() *Cursor {
 	return &Cursor{b.bucket.Cursor(), b.kc, b.vc, b.err}
 }
 
+func (b *Bucket) CreateBucketIfNotExists(name interface{}) *Bucket {
+	if b.err != nil {
+		return &Bucket{nil, b.kc, b.vc, b.err}
+	}
+
+	n, err := b.kc.Marshaler(name).MarshalBinary()
+	if err != nil {
+		return &Bucket{nil, b.kc, b.vc, err}
+	}
+
+	bucket, err := b.bucket.CreateBucketIfNotExists(n)
+	return &Bucket{
+		bucket: bucket,
+		kc:     b.kc,
+		vc:     b.vc,
+		err:    err,
+	}
+
+}
+
 func (b *Bucket) Put(key interface{}, value interface{}) error {
 	if b.err != nil {
 		return b.err
