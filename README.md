@@ -5,7 +5,7 @@ Thunder is a high productivity wrapper for [BoltDB](https://github.com/boltdb/bo
 The idea behind thunder is to allow users to rapidly develop but allow them to fallback to using BoltDB directly by maintaining an almost functionally identical API yet hide some of the complexity involved around using a serializaiton format, filtering, batch insert and reads.
 
 
-Thunder stays unopinionated about serialization format used by allowing users to bring their own [Codec](https://godoc.org/omeid/thunder/codec") by implementing a simple interface:
+Thunder stays unopinionated about serialization format used by allowing users to bring their own [Codec](https://godoc.org/github.com/omeid/thunder/codec) by implementing a simple interface:
 
 ```go
 type Codec interface {
